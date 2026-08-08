@@ -1,11 +1,9 @@
 name: otel_bloc
-description: OpenTelemetry instrumentation for `package:bloc`. A
-  `BlocObserver` subclass that emits short event spans on every bloc
-  event / state change / error, turning your Tempo trace view into a
-  state-machine timeline. Works for both pure-Dart `bloc` apps and
-  `flutter_bloc` apps (the latter via the
-  `otel_flutter_bloc` overlay).
-version: 0.1.0-beta.1-wip
+description: >-
+  OpenTelemetry instrumentation for `package:bloc`. A `BlocObserver`
+  emitting spans on every bloc event, state change and error, turning traces
+  into a state-machine timeline.
+version: 0.2.0-wip
 repository: https://github.com/dartastic/otel_bloc
 homepage: https://dartastic.io
 
@@ -14,8 +12,8 @@ environment:
 
 dependencies:
   bloc: ^9.0.0
-  dartastic_opentelemetry: ^1.1.0-beta.4
-  dartastic_opentelemetry_api: ^1.0.0-beta.6
+  dartastic_opentelemetry: ^1.1.0-beta.12
+  dartastic_opentelemetry_api: ^1.0.0-rc.1
 
 dev_dependencies:
   dart_flutter_team_lints: ^3.5.2

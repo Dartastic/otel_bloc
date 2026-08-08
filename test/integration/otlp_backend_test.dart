@@ -2,12 +2,14 @@
 // Copyright 2025, Mindful Software LLC, All rights reserved.
 
 /// Integration test: drive a small Bloc + Cubit through the observer
-/// against a real OTLP endpoint, then poll Tempo's HTTP API to
+/// against a real OTLP endpoint, then poll the trace query API to
 /// verify the spans arrived with the expected `bloc.*` semconv
 /// attributes.
 ///
-/// Skipped when no LGTM stack is reachable. Bring one up first:
-///   docker compose -f tool/lgtm/docker-compose.yml up -d
+/// Skipped when no local stack is reachable. Requires OTLP HTTP on
+/// :4318 and a trace-by-id query API on :3200 (any OTLP-compatible
+/// backend with both ports published). Override the endpoints via
+/// `OTLP_ENDPOINT` / `TRACE_API_URL`.
 library;
 
 import 'dart:async';
@@ -21,29 +23,29 @@ import 'package:test/test.dart';
 
 const _defaultOtlp = 'http://localhost:4318';
 const _defaultOtlpPort = 4318;
-const _defaultTempo = 'http://localhost:3200';
+const _defaultTraceApi = 'http://localhost:3200';
 
 void main() {
-  group('LGTM end-to-end', () {
-    final otlpEndpoint =
-        Platform.environment['LGTM_OTLP_ENDPOINT'] ?? _defaultOtlp;
-    final tempoUrl = Platform.environment['LGTM_TEMPO_URL'] ?? _defaultTempo;
+  group('OTLP backend end-to-end', () {
+    final otlpEndpoint = Platform.environment['OTLP_ENDPOINT'] ?? _defaultOtlp;
+    final traceApiUrl =
+        Platform.environment['TRACE_API_URL'] ?? _defaultTraceApi;
 
-    test('OTelBlocObserver spans appear in Tempo', () async {
-      final tempoOk = await _tempoReachable(tempoUrl);
+    test('OTelBlocObserver spans appear in the trace backend', () async {
+      final traceApiOk = await _traceApiReachable(traceApiUrl);
       final otlpOk = await _portOpen(otlpEndpoint);
-      if (!tempoOk || !otlpOk) {
+      if (!traceApiOk || !otlpOk) {
         markTestSkipped(
-          'LGTM not reachable (tempo=$tempoOk otlp=$otlpOk) — start it '
-          'with `docker compose -f tool/lgtm/docker-compose.yml up -d` and '
-          'rerun.',
+          'Backend not reachable (traces=$traceApiOk otlp=$otlpOk) — start a '
+          'local backend with OTLP on :4318 and a trace query API on :3200 '
+          '(any OTLP-compatible backend) and rerun.',
         );
         return;
       }
 
       await OTel.reset();
       await OTel.initialize(
-        serviceName: 'bloc-otel-lgtm-itest',
+        serviceName: 'bloc-otel-itest',
         serviceVersion: '0.0.1',
         endpoint: otlpEndpoint,
       );
@@ -65,13 +67,13 @@ void main() {
       await OTel.tracerProvider().forceFlush();
       await OTel.shutdown();
 
-      final trace = await _pollTempoForTrace(
-        tempoUrl: tempoUrl,
+      final trace = await _pollBackendForTrace(
+        traceApiUrl: traceApiUrl,
         traceIdHex: traceIdHex,
         timeout: const Duration(seconds: 30),
       );
       expect(trace, isNotNull,
-          reason: 'Tempo never returned trace $traceIdHex');
+          reason: 'Backend never returned trace $traceIdHex');
 
       final spans = <Map<String, dynamic>>[];
       for (final batch in (trace!['batches'] as List<dynamic>? ?? const [])) {
@@ -123,10 +125,10 @@ final class _NoopObserver extends BlocObserver {
   const _NoopObserver();
 }
 
-Future<bool> _tempoReachable(String tempoUrl) async {
+Future<bool> _traceApiReachable(String traceApiUrl) async {
   try {
     final c = HttpClient()..connectionTimeout = const Duration(seconds: 1);
-    final req = await c.getUrl(Uri.parse('$tempoUrl/ready'));
+    final req = await c.getUrl(Uri.parse('$traceApiUrl/ready'));
     final resp = await req.close().timeout(const Duration(seconds: 2));
     await resp.drain<void>();
     c.close();
@@ -150,8 +152,8 @@ Future<bool> _portOpen(String endpoint) async {
   }
 }
 
-Future<Map<String, dynamic>?> _pollTempoForTrace({
-  required String tempoUrl,
+Future<Map<String, dynamic>?> _pollBackendForTrace({
+  required String traceApiUrl,
   required String traceIdHex,
   required Duration timeout,
 }) async {
@@ -161,7 +163,7 @@ Future<Map<String, dynamic>?> _pollTempoForTrace({
     while (DateTime.now().isBefore(deadline)) {
       try {
         final req = await client.getUrl(
-          Uri.parse('$tempoUrl/api/traces/$traceIdHex'),
+          Uri.parse('$traceApiUrl/api/traces/$traceIdHex'),
         );
         final resp = await req.close();
         if (resp.statusCode == 200) {

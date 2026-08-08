@@ -11,7 +11,7 @@ import 'bloc_semantics.dart';
 /// A `BlocObserver` that emits one short span per Bloc/Cubit
 /// lifecycle event (`onCreate` / `onEvent` / `onTransition` /
 /// `onChange` / `onError` / `onClose`). Each span carries the bloc's
-/// runtime type and the state types before/after, so a Tempo
+/// runtime type and the state types before/after, so a trace
 /// waterfall reads as a state-machine timeline.
 ///
 /// Install once at startup:
@@ -72,8 +72,7 @@ final class OTelBlocObserver extends BlocObserver {
     this.recordEventValues = false,
     this.recordStateValues = false,
     this.valueAttributeMaxLength = 256,
-  }) : _tracer =
-            tracer ?? OTel.tracerProvider().getTracer('otel_bloc');
+  }) : _tracer = tracer ?? OTel.tracerProvider().getTracer('otel_bloc');
 
   final Tracer _tracer;
 

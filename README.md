@@ -5,7 +5,7 @@ built on the [Dartastic OpenTelemetry SDK](https://pub.dev/packages/dartastic_op
 
 Install one `BlocObserver` and every bloc / cubit lifecycle event
 emits a short span — created, transition, change, error, closed —
-turning your Tempo trace view into a state-machine timeline.
+turning your trace view into a state-machine timeline.
 
 ```dart
 Bloc.observer = OTelBlocObserver();
@@ -23,9 +23,9 @@ Bloc is the workhorse state-machine pattern in production Flutter
 apps. Production bugs that only show up under specific
 event-to-state sequences are exactly the bugs that traces solve —
 but only if you can see the events and the transitions. This
-package emits a span per observer hook, so Tempo's waterfall view
-shows you the exact sequence that led to a bad state, ordered and
-timestamped, with the triggering event captured.
+package emits a span per observer hook, so your trace backend's
+waterfall view shows you the exact sequence that led to a bad
+state, ordered and timestamped, with the triggering event captured.
 
 The integration is **opt-in**: the OTel SDK does not depend on
 `bloc`. Add this package only when you want it.

@@ -5,16 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0-beta.1-wip]
+## [0.2.0-wip]
+
+### Changed
+
+- Dependency floors raised to `dartastic_opentelemetry ^1.1.0-beta.12` and
+  `dartastic_opentelemetry_api ^1.0.0-rc.1`. The previous floors declared
+  compatibility with API versions that predate the semconv enums this
+  package uses and could not actually resolve-and-compile.
+- `repository` URL corrected to the canonical `Dartastic` org casing so
+  pub.dev repository verification succeeds.
 
 ### Renamed
 
-- Renamed from `dartastic_flutter_bloc_otel` to `dartastic_bloc_otel`
-  to match the riverpod core/overlay pattern. The package only ever
-  depended on `bloc` (the pure-Dart core that `flutter_bloc`
-  re-exports); the `flutter_` prefix was misleading. A new slim
-  Flutter overlay ships under the original
-  `dartastic_flutter_bloc_otel` name for `flutter_bloc`-based apps.
+- Ships as `otel_bloc`, the pure-Dart core, matching the core/overlay
+  pattern. The package only ever depended on `bloc` (the pure-Dart
+  core that `flutter_bloc` re-exports), so it works for both bloc and
+  `flutter_bloc` apps. A slim Flutter overlay ships separately as
+  `otel_flutter_bloc` for `flutter_bloc`-based apps.
 
 ### Added
 
@@ -42,7 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   onChange (with onTransition correctly absent), onError → Error
   status + exception event, recordEventValues + recordStateValues
   clipping, recordLifecycle false, recordTransitions false.
-- 1 LGTM integration test polls Tempo round-trip.
-- Example app produces a single `run-scenarios` trace with 16
-  spans across a Bloc-happy-path, Cubit-happy-path, and a
-  Bloc-error scenario.
+- 1 optional integration test verifies the OTLP export round-trip
+  against a local trace backend; it self-skips when no local stack
+  is reachable.
+- Runnable `example/main.dart` drives a bloc through an event inside
+  an active parent span so the transition spans nest under it.
