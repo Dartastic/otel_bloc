@@ -4,6 +4,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 
+import 'bloc_context_propagation.dart';
 import 'bloc_semantics.dart';
 
 /// OpenTelemetry instrumentation for `package:bloc` / `package:flutter_bloc`.
@@ -65,6 +66,10 @@ final class OTelBlocObserver extends BlocObserver {
   ///   default; same reasoning as event values.
   /// - [valueAttributeMaxLength] — cap on any `toString()`-derived
   ///   attribute. Defaults to 256.
+  /// - [propagateContext] — capture the caller's context on every
+  ///   `Bloc.add` so [otelContextTransformer] can run the handler in
+  ///   it. Defaults to `true`. Has no effect unless the transformer is
+  ///   installed.
   OTelBlocObserver({
     Tracer? tracer,
     this.recordLifecycle = true,
@@ -72,6 +77,7 @@ final class OTelBlocObserver extends BlocObserver {
     this.recordEventValues = false,
     this.recordStateValues = false,
     this.valueAttributeMaxLength = 256,
+    this.propagateContext = true,
   }) : _tracer = tracer ?? OTel.tracerProvider().getTracer('otel_bloc');
 
   final Tracer _tracer;
@@ -91,12 +97,24 @@ final class OTelBlocObserver extends BlocObserver {
   /// Maximum length of any `toString()`-derived attribute.
   final int valueAttributeMaxLength;
 
+  /// Whether `onEvent` captures the caller's context for
+  /// [otelContextTransformer].
+  final bool propagateContext;
+
   @override
   void onCreate(BlocBase<dynamic> bloc) {
     super.onCreate(bloc);
     if (!recordLifecycle) return;
     final span = _startSpan(bloc, event: 'created');
     span.end();
+  }
+
+  @override
+  void onEvent(Bloc<dynamic, dynamic> bloc, Object? event) {
+    super.onEvent(bloc, event);
+    // Runs synchronously inside `Bloc.add`, in the caller's zone: the
+    // one moment the caller's context is reachable.
+    if (propagateContext) captureEventContext(event);
   }
 
   @override

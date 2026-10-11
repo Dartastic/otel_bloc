@@ -58,41 +58,87 @@ Bloc.observer = MultiBlocObserver(
 );
 ```
 
+## Context propagation
+
+Bloc runs an event handler from a stream subscription created when
+the bloc was *constructed*, not from the zone that called `add`.
+OpenTelemetry context lives in zones, so by default a span made
+current around `bloc.add(...)` (a gesture span, say) is **not** the
+parent of anything the handler does: its HTTP calls, its database
+calls, or the `bloc.transition` span.
+
+`otelContextTransformer` fixes that. The observer's `onEvent` hook
+runs synchronously inside `add`, in the caller's zone, and captures
+the current context; the transformer runs the handler inside it. The
+handler, everything it awaits, and every span it starts then nest
+under the caller's span.
+
+Install both once, **before any bloc is constructed** (a bloc reads
+`Bloc.transformer` in its constructor):
+
+```dart
+Bloc.observer = OTelBlocObserver();
+Bloc.transformer = otelContextTransformer(Bloc.transformer);
+```
+
+Handlers that pass their own transformer wrap it the same way:
+
+```dart
+on<Refresh>(_onRefresh, transformer: otelContextTransformer(droppable()));
+```
+
+Notes:
+
+- Cubits need nothing: their methods are plain calls that already run
+  in the caller's zone.
+- Each event's context is claimed as it leaves the bloc's event
+  stream, before your transformer drops, debounces or queues it, so a
+  dropped event never hands its context to a later one.
+- Events that are `null`, numbers, strings, booleans or records can't
+  carry a captured context and run without propagation. Use a class
+  or enum for events you want traced end to end.
+- The same `const` event instance added several times shares one
+  first-in, first-out queue (capped at 64). With `restartable` or a
+  debounce, the event that survives can take an earlier `add`'s
+  context.
+- `OTelBlocObserver(propagateContext: false)` turns the capture off.
+
 ## Span shape
 
-| Bloc kind | Hook | Span name | Status |
-|---|---|---|---|
-| Any | `onCreate` | `bloc.created:<name>` | unset |
-| `Bloc` | `onTransition` | `bloc.transition:<name>` | unset |
-| `Cubit` | `onChange` | `bloc.change:<name>` | unset |
-| Any | `onError` | `bloc.error:<name>` | Error + `recordException` |
-| Any | `onClose` | `bloc.closed:<name>` | unset |
+| Bloc kind | Hook           | Span name                | Status                    |
+|-----------|----------------|--------------------------|---------------------------|
+| Any       | `onCreate`     | `bloc.created:<name>`    | unset                     |
+| `Bloc`    | `onTransition` | `bloc.transition:<name>` | unset                     |
+| `Cubit`   | `onChange`     | `bloc.change:<name>`     | unset                     |
+| Any       | `onError`      | `bloc.error:<name>`      | Error + `recordException` |
+| Any       | `onClose`      | `bloc.closed:<name>`     | unset                     |
 
 `onChange` is suppressed for `Bloc`s because `onTransition` fires
 right after it with strictly more info (the triggering event).
 Cubits don't have events, so only `onChange` fires for them.
 
-| Attribute | Source | When set |
-|---|---|---|
-| `bloc.name` | `bloc.runtimeType` | every span |
-| `bloc.kind` | `Bloc` / `Cubit` | every span |
-| `bloc.event` | the observer hook name | every span |
-| `bloc.event.type` | `transition.event.runtimeType` | `transition` spans |
-| `bloc.event.value` | `event.toString()` (clipped) | when `recordEventValues: true` |
-| `bloc.state.before` | `change.currentState.runtimeType` | `transition` / `change` |
-| `bloc.state.after` | `change.nextState.runtimeType` | `transition` / `change` |
-| `bloc.state.before.value` / `bloc.state.after.value` | `toString()` (clipped) | when `recordStateValues: true` |
+| Attribute                                            | Source                            | When set                       |
+|------------------------------------------------------|-----------------------------------|--------------------------------|
+| `bloc.name`                                          | `bloc.runtimeType`                | every span                     |
+| `bloc.kind`                                          | `Bloc` / `Cubit`                  | every span                     |
+| `bloc.event`                                         | the observer hook name            | every span                     |
+| `bloc.event.type`                                    | `transition.event.runtimeType`    | `transition` spans             |
+| `bloc.event.value`                                   | `event.toString()` (clipped)      | when `recordEventValues: true` |
+| `bloc.state.before`                                  | `change.currentState.runtimeType` | `transition` / `change`        |
+| `bloc.state.after`                                   | `change.nextState.runtimeType`    | `transition` / `change`        |
+| `bloc.state.before.value` / `bloc.state.after.value` | `toString()` (clipped)            | when `recordStateValues: true` |
 
 ## Configuration
 
-| Constructor arg | Default | Effect |
-|---|---|---|
-| `tracer` | `OTel.tracerProvider().getTracer('otel_bloc')` | The tracer that emits the spans. |
-| `recordLifecycle` | `true` | Emit `onCreate` / `onClose` spans. |
-| `recordTransitions` | `true` | Emit `onTransition` (Bloc) / `onChange` (Cubit) spans. |
-| `recordEventValues` | `false` | Capture `event.toString()` on transition spans. Off because events often carry user data. |
-| `recordStateValues` | `false` | Capture state `toString()` (before + after). Off by default for the same reason. |
-| `valueAttributeMaxLength` | `256` | Cap on any `toString()`-derived attribute. |
+| Constructor arg           | Default                                        | Effect                                                                                                                  |
+|---------------------------|------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| `tracer`                  | `OTel.tracerProvider().getTracer('otel_bloc')` | The tracer that emits the spans.                                                                                        |
+| `recordLifecycle`         | `true`                                         | Emit `onCreate` / `onClose` spans.                                                                                      |
+| `recordTransitions`       | `true`                                         | Emit `onTransition` (Bloc) / `onChange` (Cubit) spans.                                                                  |
+| `recordEventValues`       | `false`                                        | Capture `event.toString()` on transition spans. Off because events often carry user data.                               |
+| `recordStateValues`       | `false`                                        | Capture state `toString()` (before + after). Off by default for the same reason.                                        |
+| `valueAttributeMaxLength` | `256`                                          | Cap on any `toString()`-derived attribute.                                                                              |
+| `propagateContext`        | `true`                                         | Capture the caller's context on `Bloc.add` for `otelContextTransformer`. No effect unless the transformer is installed. |
 
 ## Caveats
 
