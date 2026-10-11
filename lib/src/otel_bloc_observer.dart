@@ -2,7 +2,7 @@
 // Copyright 2025, Mindful Software LLC, All rights reserved.
 
 import 'package:bloc/bloc.dart';
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'bloc_context_propagation.dart';
 import 'bloc_semantics.dart';
@@ -71,16 +71,16 @@ final class OTelBlocObserver extends BlocObserver {
   ///   it. Defaults to `true`. Has no effect unless the transformer is
   ///   installed.
   OTelBlocObserver({
-    Tracer? tracer,
+    APITracer? tracer,
     this.recordLifecycle = true,
     this.recordTransitions = true,
     this.recordEventValues = false,
     this.recordStateValues = false,
     this.valueAttributeMaxLength = 256,
     this.propagateContext = true,
-  }) : _tracer = tracer ?? OTel.tracerProvider().getTracer('otel_bloc');
+  }) : _tracer = tracer ?? OTelAPI.tracerProvider().getTracer('otel_bloc');
 
-  final Tracer _tracer;
+  final APITracer _tracer;
 
   /// Whether to emit spans on `onCreate` / `onClose`.
   final bool recordLifecycle;
@@ -140,7 +140,7 @@ final class OTelBlocObserver extends BlocObserver {
       extras[BlocSemantics.stateAfterValue.key] =
           _clip(transition.nextState.toString());
     }
-    span.addAttributes(OTel.attributesFromMap(extras));
+    span.addAttributes(OTelAPI.attributesFromMap(extras));
     span.end();
   }
 
@@ -164,7 +164,7 @@ final class OTelBlocObserver extends BlocObserver {
       extras[BlocSemantics.stateAfterValue.key] =
           _clip(change.nextState.toString());
     }
-    span.addAttributes(OTel.attributesFromMap(extras));
+    span.addAttributes(OTelAPI.attributesFromMap(extras));
     span.end();
   }
 
@@ -195,7 +195,7 @@ final class OTelBlocObserver extends BlocObserver {
     };
     return _tracer.startSpan(
       'bloc.$event:$name',
-      attributes: OTel.attributesFromMap(attrs),
+      attributes: OTelAPI.attributesFromMap(attrs),
     );
   }
 

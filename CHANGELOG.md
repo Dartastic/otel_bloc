@@ -18,12 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   observer's new `onEvent` hook captures the caller's context for the
   transformer.
 
-### Fixed
+### Changed
 
-- `dartastic_opentelemetry_api` is capped below `1.0.0-rc.4`.
-  `dartastic_opentelemetry 1.1.0-beta.15` accepts that API version but
-  does not compile against it, so a fresh resolve could pick a
-  combination that failed to build.
+- Requires `dartastic_opentelemetry_api >=1.0.0-rc.4 <1.0.0-rc.5`.
+- **Breaking:** depends on `dartastic_opentelemetry_api` only, no
+  longer on the SDK. The application chooses and initializes the
+  OpenTelemetry SDK. Parameters and fields typed with SDK classes
+  now use the API types (`APITracer`, `APISpan`, `APILogger`, ...);
+  SDK instances are still accepted wherever an API type is expected.
 
 ## [0.2.0] - 2026-08-08
 
