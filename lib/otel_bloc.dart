@@ -6,5 +6,6 @@
 /// See [OTelBlocObserver] for usage.
 library;
 
+export 'src/bloc_context_propagation.dart' show otelContextTransformer;
 export 'src/bloc_semantics.dart';
 export 'src/otel_bloc_observer.dart';

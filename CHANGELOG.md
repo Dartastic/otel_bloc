@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0-wip]
 
+### Added
+
+- `otelContextTransformer`, which runs each Bloc event handler in the
+  OpenTelemetry context that was current when the event was added. A
+  span made current around `bloc.add(...)` now parents the handler's
+  spans (and anything it awaits) and the `bloc.transition` span.
+  Install with `Bloc.transformer = otelContextTransformer(Bloc.transformer)`.
+- `OTelBlocObserver(propagateContext: ...)`, default `true`: the
+  observer's new `onEvent` hook captures the caller's context for the
+  transformer.
+
+### Fixed
+
+- `dartastic_opentelemetry_api` is capped below `1.0.0-rc.4`.
+  `dartastic_opentelemetry 1.1.0-beta.15` accepts that API version but
+  does not compile against it, so a fresh resolve could pick a
+  combination that failed to build.
+
 ## [0.2.0] - 2026-08-08
 
 ### Changed

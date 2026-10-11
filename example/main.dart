@@ -39,6 +39,10 @@ Future<void> main() async {
   // telemetry by accident; opt in only for non-sensitive blocs.
   Bloc.observer = OTelBlocObserver(recordTransitions: true);
 
+  // Run every event handler in the context of the code that called
+  // `add`. Install before constructing any bloc.
+  Bloc.transformer = otelContextTransformer(Bloc.transformer);
+
   final bloc = CounterBloc();
 
   // Wrap the dispatch in a parent span so the transition spans have
