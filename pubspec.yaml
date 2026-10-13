@@ -1,8 +1,7 @@
 name: otel_bloc
 description: >-
-  OpenTelemetry instrumentation for `package:bloc`. A `BlocObserver`
-  emitting spans on every bloc event, state change and error, turning traces
-  into a state-machine timeline.
+  OpenTelemetry instrumentation for bloc by Dartastic.io. Adds standard
+  OpenTelemetry observability to applications that use bloc.
 version: 0.3.1-wip
 repository: https://github.com/dartastic/otel_bloc
 homepage: https://dartastic.io
