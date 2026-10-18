@@ -12,11 +12,9 @@ This package can be used with any OTel backend because it's compliant with the O
 
 This package supports Android, iOS, Linux, macOS, Web and Windows, for versions of `bloc` that support those platforms. It is WASM-ready.
 
-This package is professionally maintained and supported with 💙 by Michael Bushe, Dart and Flutter Maintainer at OpenTelemetry
-and the creator of [dartastic_opentelemetry](https://pub.dev/packages/dartastic_opentelemetry)
-and [dartastic_opentelemetry_api](https://pub.dev/packages/dartastic_opentelemetry_api).
-
-This package is professionally maintained for the Dart and Flutter community and professionally supported by 
+This Apache-2.0 package is professionally maintained and supported with 💙 by Michael Bushe,
+Dart and Flutter Maintainer at OpenTelemetry and the creator of [dartastic_opentelemetry](https://pub.dev/packages/dartastic_opentelemetry)
+and [dartastic_opentelemetry_api](https://pub.dev/packages/dartastic_opentelemetry_api). This package is professionally supported by
 [Dartastic.io](https://dartastic.io).
 
 ---
